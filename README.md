@@ -128,7 +128,6 @@ Become the wealthiest player before the match timer expires by making smart inve
 | Member 3 | Game Logic |
 | Ian Kimani | UI/UX |
 | Member 5 | Assets & Testing |
-
 ---
 
 ##  Installation
@@ -251,6 +250,6 @@ Current Stage:
 
 ---
 
-## 📄 License
+## License
 
 This project was created for the Reddit Games Hackathon 2026.
