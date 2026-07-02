@@ -123,11 +123,10 @@ Become the wealthiest player before the match timer expires by making smart inve
 
 | Name | Role |
 |------|------|
-| Emmaculate Akinyi and Ashley Omondi | Frontend |
+| Emmaculate Akinyi, Quinton Juma and Ashley Omondi | Frontend |
 | Sospeter Kinyanjui, Ian Kimani and Evans Juma | Backend |
-| Member 3 | Game Logic |
 | Ian Kimani | UI/UX |
-| Member 5 | Assets & Testing |
+| All team members| Assets & Testing |
 ---
 
 ##  Installation
