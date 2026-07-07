@@ -44,3 +44,40 @@ func (s *AuctionService) StartAuction(propertyID int) (*models.PendingAuction, e
 	s.auctions[propertyID] = newAuction
 	return newAuction, nil
 }
+
+// PlaceBid processes incoming user bids, validates increments, and handles sniper clock resets.
+func (s *AuctionService) PlaceBid(propertyID int, bidderID string, bidAmount int64) (*models.PendingAuction, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	auction, exists := s.auctions[propertyID]
+	if !exists || auction.Phase != models.AuctionPhaseOpen {
+		return nil, errors.New("no active open auction found for this property")
+	}
+
+	// Calculate the current timestamp in Unix Epoch Milliseconds
+	nowMS := time.Now().UnixNano() / int64(time.Millisecond)
+	if nowMS > auction.DeadlineMS {
+		auction.Phase = models.AuctionPhaseClosed
+		return nil, errors.New("bidding windows have officially closed for this auction")
+	}
+
+	// Rule Check: Must beat the previous bid amount cleanly
+	if bidAmount <= auction.CurrentBid {
+		return nil, errors.New("bid must explicitly exceed the current highest bid")
+	}
+
+	// Update auction bid state
+	auction.CurrentBidderID = &bidderID
+	auction.CurrentBid = bidAmount
+
+	// Rule: Sniper Protection Loop
+	// If a bid rolls in within the final 3 seconds (3000ms) of the clock, 
+	// extend the deadline by an extra 5 seconds (5000ms).
+	timeRemainingMS := auction.DeadlineMS - nowMS
+	if timeRemainingMS <= 3000 {
+		auction.DeadlineMS = nowMS + 5000
+	}
+
+	return auction, nil
+}
