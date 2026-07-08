@@ -103,3 +103,43 @@ func (s *PropertyService) BuildLodge(propertyID int, userID string) error {
 	prop.LodgeCount++
 	return nil
 }
+
+
+func (s *PropertyService) MortgageProperty(propertyID int, userID string) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	prop, exists := s.properties[propertyID]
+	if !exists {
+		return errors.New("property tile not found in game state")
+	}
+
+	// 1. Ownership & State Validations
+	if prop.OwnerID == nil || *prop.OwnerID != userID {
+		return errors.New("unauthorized: user does not own this property")
+	}
+	if prop.Mortgaged {
+		return errors.New("property is already mortgaged")
+	}
+	if prop.LockedByDealID != nil {
+		return errors.New("property is currently locked in a pending trade negotiation")
+	}
+
+	// 2. Rulebook Validation: Cannot mortgage if any properties in the color group have developments
+	sisterIDs := getColorGroupIDs(propertyID)
+	if sisterIDs != nil {
+		for _, id := range sisterIDs {
+			sisterProp, exists := s.properties[id]
+			if !exists {
+				return errors.New("critical: sister property missing from game state")
+			}
+			if sisterProp.LodgeCount > 0 {
+				return errors.New("cannot mortgage: you must sell all lodges in this color group first")
+			}
+		}
+	}
+
+	// 3. Apply Mortgage
+	prop.Mortgaged = true
+	return nil
+}
