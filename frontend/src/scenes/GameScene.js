@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { Board } from '../board/Board.js';
+import { Board } from '../board/PhaserBoard.js';
 
 export class GameScene extends Phaser.Scene {
   constructor() {
