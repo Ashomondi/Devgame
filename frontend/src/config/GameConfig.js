@@ -1,7 +1,6 @@
 // src/config/GameConfig.js
 import Phaser from 'phaser';
-import { GameScene } from '../scenes/GameScene.js';
-
+import GameScene from '../scenes/GameScene.js';
 /**
  * Global Phaser Game Engine configuration.
  * Configures canvas scaling, rendering engines, and boots game scenes.
