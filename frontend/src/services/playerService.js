@@ -1,26 +1,25 @@
-import { api } from "./api";
+import apiService from './api';
 
 export const playerService = {
-  // Players
-  listPlayers: (params) =>
-    api.get(`/players${params ? `?${new URLSearchParams(params)}` : ""}`),
 
-  getPlayer: (playerId) => api.get(`/players/${playerId}`),
+  getCurrentPlayerProfile: async () => {
+    try {
+      return await apiService.request('/players/me');
+    } catch (error) {
+      console.error("Failed to fetch player profile:", error);
+      return null;
+    }
+  },
 
-  // Auth / current user (adjust if your routes differ)
-  getMe: () => api.get(`/players/me`),
+  
+  getLocalPreferences: () => {
+    const prefs = localStorage.getItem('monopoly_prefs');
+    return prefs ? JSON.parse(prefs) : { preferredColor: '#ff4500', preferredPiece: 'alien' };
+  },
 
-  // Profile / updates (adjust payload as needed)
-  updateProfile: (data) => api.put(`/players/me`, data),
-
-  // Avatar / settings (examples)
-  updateAvatar: (data) => api.patch(`/players/me/avatar`, data),
-
-  // Common leaderboard stats (examples)
-  getPlayerStats: (playerId, params) =>
-    api.get(
-      `/players/${playerId}/stats${params ? `?${new URLSearchParams(params)}` : ""}`
-    ),
+  saveLocalPreferences: (prefs) => {
+    localStorage.setItem('monopoly_prefs', JSON.stringify(prefs));
+  }
 };
 
 export default playerService;
