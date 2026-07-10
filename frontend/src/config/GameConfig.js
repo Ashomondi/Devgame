@@ -1,30 +1,53 @@
-const GameConfig = {
-  // API (override with VITE_API_BASE_URL)
-  apiBaseUrl: import.meta.env.VITE_API_BASE_URL || "http://localhost:5173",
+// src/config/GameConfig.js
+import Phaser from 'phaser';
 
-  // Match settings
+/**
+ * Global Consolidated Game Engine & API Configuration.
+ */
+export const GameConfig = {
+  // --- Phaser Specific Engine Attributes ---
+  type: Phaser.AUTO, 
+  width: 1200,       
+  height: 750,       
+  parent: 'game-container', 
+  backgroundColor: '#1a1a1a', 
+  
+  scale: {
+    mode: Phaser.Scale.FIT, 
+    autoCenter: Phaser.Scale.CENTER_BOTH 
+  },
+
+  physics: {
+    default: 'arcade', 
+    arcade: {
+      debug: false, 
+      gravity: { y: 0 } 
+    }
+  },
+
+  // LEAVE THIS EMPTY HERE TO BREAK THE CIRCULAR DEPENDENCY LOOP!
+  scene: [],
+
+  // --- Network API Rest Endpoints & State Sync Settings ---
+  apiBaseUrl: import.meta.env.VITE_API_BASE_URL || "http://localhost:8080",
+
   match: {
     maxPlayers: 4,
     minPlayersToStart: 2,
-
-    // Quick hackathon pacing
-    durationMs: 180000, // 3 minutes
+    durationMs: 180000, 
     turnTimeoutMs: 15000,
   },
 
-  // Dice
   dice: {
     sides: 6,
     minRoll: 1,
     maxRoll: 6,
   },
 
-  // Board
   board: {
-    tileCount: 16,
+    tileCount: 16, 
   },
 
-  // Tile types (must match what the backend uses)
   tileTypes: {
     business: "business",
     ownedIncome: "income",
@@ -32,7 +55,6 @@ const GameConfig = {
     challenge: "challenge",
   },
 
-  // Actions (must match what the backend expects)
   actions: {
     buy: "buy",
     upgrade: "upgrade",
@@ -41,7 +63,6 @@ const GameConfig = {
     resolveEvent: "draw_event",
   },
 
-  // UI/Client refresh
   client: {
     stateRefreshMs: 500,
   },

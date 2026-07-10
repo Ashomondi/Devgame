@@ -1,23 +1,18 @@
+// src/main.js
 import Phaser from 'phaser';
-import { GameScene } from './scenes/GameScene.js';
+import GameConfig from './config/GameConfig.js';
+import GameScene from './scenes/GameScene.js';
 
-const config = {
-  type: Phaser.AUTO,
-  width: window.innerWidth,
-  height: window.innerHeight,
-  parent: 'game-container',
-  dom: {
-    createContainer: true
-  },
-  physics: {
-    default: 'arcade',
-    arcade: { debug: false }
-  },
-  scene: [GameScene]
-};
+// 1. Break the circular loop by registering the scene dynamically at runtime 
+// after both files have finished evaluating.
+GameConfig.scene = [GameScene];
 
-const game = new Phaser.Game(config);
+// 2. Initialize the global game instance using the standard shared config
+const game = new Phaser.Game(GameConfig);
 
+// 3. Keep your responsive window resizing listener running
 window.addEventListener('resize', () => {
-  game.scale.resize(window.innerWidth, window.innerHeight);
+  if (game && game.scale) {
+    game.scale.resize(window.innerWidth, window.innerHeight);
+  }
 });
