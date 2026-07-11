@@ -19,6 +19,7 @@ type CreateLobbyResponse struct {
 // JoinLobbyRequest holds the JSON request payload for joining a lobby.
 type JoinLobbyRequest struct {
 	PlayerID string `json:"playerId"`
+	Name     string `json:"name"`
 }
 
 // JoinLobbyResponse holds the JSON response payload for joining a lobby.
@@ -79,9 +80,19 @@ func JoinLobbyHandler(registry *services.RoomRegistry) http.HandlerFunc {
 		}
 
 		var req JoinLobbyRequest
-		if err := json.NewDecoder(r.Body).Decode(&req); err != nil || req.PlayerID == "" {
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 			w.WriteHeader(http.StatusBadRequest)
-			json.NewEncoder(w).Encode(map[string]string{"error": "Player ID is required"})
+			json.NewEncoder(w).Encode(map[string]string{"error": "Invalid request body"})
+			return
+		}
+
+		playerID := req.PlayerID
+		if playerID == "" {
+			playerID = req.Name
+		}
+		if playerID == "" {
+			w.WriteHeader(http.StatusBadRequest)
+			json.NewEncoder(w).Encode(map[string]string{"error": "Player ID or name is required"})
 			return
 		}
 
@@ -89,7 +100,7 @@ func JoinLobbyHandler(registry *services.RoomRegistry) http.HandlerFunc {
 		w.WriteHeader(http.StatusOK)
 		json.NewEncoder(w).Encode(JoinLobbyResponse{
 			RoomID: roomID,
-			Token:  req.PlayerID,
+			Token:  playerID,
 		})
 	}
 }
