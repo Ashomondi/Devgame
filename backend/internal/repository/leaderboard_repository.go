@@ -1,41 +1,4 @@
 // Package repository -- see game_repository.go for the general pattern.
-//
-// LeaderboardRepository is designed-but-unimplemented for the same
-// reason as PlayerRepository: docs/DATABASE.md's schema has no table
-// that ranks players across games. A leaderboard needs, at minimum,
-// (playerID, some ranking metric, gameID) rows to aggregate over --
-// none of that exists as queryable columns today, only as opaque JSON
-// inside game_snapshots.state_json and activity_log.payload_json.
-//
-// Concretely blocked on the same open question as PlayerRepository:
-// what identifies a player across games? Until that's answered, "top 10
-// by net worth" or "most wins" has nothing stable to GROUP BY.
-package repository
-
-import (
-	"context"
-	"database/sql"
-)
-
-type LeaderboardRepository struct {
-	db *sql.DB
-}
-
-func NewLeaderboardRepository(db *sql.DB) *LeaderboardRepository {
-	return &LeaderboardRepository{db: db}
-}
-
-// LeaderboardEntry is a placeholder shape -- not a finalized contract.
-type LeaderboardEntry struct {
-	PlayerID string
-	Name     string
-	Score    int64 // net worth, wins, or whatever metric gets decided
-}
-
-func (r *LeaderboardRepository) GetTop(ctx context.Context, limit int) ([]LeaderboardEntry, error) {
-	return nil, ErrNotImplemented
-}
-ai// Package repository -- see game_repository.go for the general pattern.
 package repository
 
 import (

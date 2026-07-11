@@ -18,7 +18,7 @@
 // // property state might belong entirely to
 // // GameRepository.GetLatestSnapshot plus a JSON unmarshal, not a separate
 // // query path with its own table.
-// package repository
+package repository
 
 // import (
 // 	"context"
