@@ -18,6 +18,9 @@ import HUD from "../ui/HUD";
 import BuyModal from "../ui/buymodal";
 import UpgradeModal from "../ui/upgrademodal";
 import Notification from "../ui/notification";
+import CardModal from "../ui/cardmodal";
+import RentModal from "../ui/rentmodal";
+import { drawCard } from "../board/cardData";
 
 const PLAYER_COLORS = [0x5eead4, 0xfbbf24, 0xfb7185, 0x818cf8];
 const PLAYER_INITIALS = ['A', 'B', 'C', 'D'];
@@ -46,6 +49,8 @@ export default class GameScene extends Phaser.Scene {
     this.economy = null;
     this.eventManager = null;
     this.pendingBuyTile = null;
+    this.pendingCard = null;
+    this.lastRollWasDoubles = false;
     this.rolling = false;
   }
 
@@ -79,6 +84,10 @@ export default class GameScene extends Phaser.Scene {
     this.buyModal.create();
     this.upgradeModal = new UpgradeModal(this);
     this.upgradeModal.create();
+    this.cardModal = new CardModal(this);
+    this.cardModal.create();
+    this.rentModal = new RentModal(this);
+    this.rentModal.create();
     this.notification = new Notification(this);
     this.notification.create(
       BOARD_ORIGIN.x + (CELL_SIZE * 11) / 2,
@@ -351,25 +360,26 @@ export default class GameScene extends Phaser.Scene {
 
     players.forEach((p, idx) => {
       const center = getTileCenter(p.positionIndex);
-      const offsetX = (idx - (players.length - 1) / 2) * 28;
-      const offsetY = -16;
+      const count = players.length;
+      const offsetX = (idx - (count - 1) / 2) * 18;
+      const offsetY = -10;
 
       const px = center.x + offsetX;
       const py = center.y + offsetY;
 
       const glow = this.add.graphics();
       glow.fillStyle(colors[idx % colors.length], 0.2);
-      glow.fillCircle(px, py, 40);
+      glow.fillCircle(px, py, 28);
 
       const circle = this.add.graphics();
       circle.fillStyle(colors[idx % colors.length], 1);
-      circle.fillCircle(px, py, 25);
-      circle.lineStyle(4, 0xffffff, 1);
-      circle.strokeCircle(px, py, 25);
+      circle.fillCircle(px, py, 16);
+      circle.lineStyle(3, 0xffffff, 1);
+      circle.strokeCircle(px, py, 16);
 
       const label = this.add.text(px, py, PLAYER_INITIALS[idx] || '?', {
-        fontFamily: 'Arial', fontSize: '22px', color: '#ffffff', fontStyle: 'bold',
-        stroke: '#000', strokeThickness: 3,
+        fontFamily: 'Arial', fontSize: '16px', color: '#ffffff', fontStyle: 'bold',
+        stroke: '#000', strokeThickness: 2,
       }).setOrigin(0.5, 0.5);
 
       this.pawns.push(glow, circle, label);
@@ -561,6 +571,7 @@ export default class GameScene extends Phaser.Scene {
     this.rollBtn.setEnabled(false);
 
     const res = rollDice({ diceCount: 2, sides: GameConfig.dice.sides });
+    this.lastRollWasDoubles = res.results[0] === res.results[1];
     this.diceUI.show();
     await this.diceUI.animateRoll(res);
 
@@ -596,18 +607,28 @@ export default class GameScene extends Phaser.Scene {
       this._endTurn();
     } else if (otherOwner && (landedTile.type === 'property' || landedTile.type === 'transport' || landedTile.type === 'utility')) {
       const rent = Math.floor(landedTile.price * 0.1);
-      current.applyCashDelta(-rent);
-      otherOwner.applyCashDelta(rent);
-      this.notification.push(`${current.name} paid KES ${rent} rent to ${otherOwner.name}`);
-      this._endTurn();
+      this.rentModal.show(current.name, otherOwner.name, rent, current.cash, () => {
+        current.applyCashDelta(-rent);
+        otherOwner.applyCashDelta(rent);
+        this._renderFromState();
+        this._endTurn();
+      });
+      this.state.allowedActions = [];
+      this._renderFromState();
+      this.rolling = false;
+      return;
     } else if (!otherOwner && (landedTile.type === 'property' || landedTile.type === 'transport' || landedTile.type === 'utility')) {
       this.pendingBuyTile = landedTile;
       this.notification.push(`${current.name} landed on ${landedTile.name} (KES ${landedTile.price})`);
       this.state.allowedActions = ["buy", "skip"];
       this._renderFromState();
     } else if (landedTile.type === 'chance' || landedTile.type === 'community') {
-      this.notification.push(`${current.name} landed on ${landedTile.name}`);
-      this._endTurn();
+      this.pendingCard = { player: current, tile: landedTile, deck: landedTile.type === 'chance' ? 'chance' : 'community' };
+      this.cardModal.show(this.pendingCard.deck, null, () => this._drawCard());
+      this.state.allowedActions = [];
+      this._renderFromState();
+      this.rolling = false;
+      return;
     } else if (landedTile.type === 'tax') {
       current.applyCashDelta(-landedTile.price);
       this.notification.push(`${current.name} paid KES ${landedTile.price} tax`);
@@ -622,6 +643,36 @@ export default class GameScene extends Phaser.Scene {
     }
 
     this.rolling = false;
+  }
+
+  _drawCard() {
+    if (!this.pendingCard) return;
+    const { player, deck } = this.pendingCard;
+    const card = drawCard(deck);
+
+    if (card.effect === 'cash' && card.amount) {
+      player.applyCashDelta(card.amount);
+    } else if (card.effect === 'go_to_jail') {
+      player.positionIndex = 10;
+    } else if (card.effect === 'move' && card.target !== undefined) {
+      player.positionIndex = card.target;
+    } else if (card.effect === 'advance' && card.target) {
+      const newPos = (player.positionIndex + card.target + 40) % 40;
+      if ((card.target > 0 && player.positionIndex + card.target >= 40) ||
+          (card.target < 0 && player.positionIndex + card.target < 0)) {
+        player.applyCashDelta(2000);
+      }
+      player.positionIndex = newPos;
+    } else if (card.effect === 'jail_free') {
+      player.hasJailFreeCard = true;
+    }
+
+    this._renderPawns();
+    this.cardModal.show(deck, card, () => {
+      this.pendingCard = null;
+      this.cardModal.hide();
+      this._endTurn();
+    });
   }
 
   _onBuy() {
@@ -674,6 +725,15 @@ export default class GameScene extends Phaser.Scene {
   }
 
   _endTurn() {
+    if (this.lastRollWasDoubles) {
+      this.lastRollWasDoubles = false;
+      this.state.allowedActions = ["roll"];
+      this.state.canCurrentPlayerAct = true;
+      this.pendingBuyTile = null;
+      this.notification.push('Doubles! Roll again.');
+      this._renderFromState();
+      return;
+    }
     const idx = this.state.players.findIndex(p => p.id === this.state.currentPlayerId);
     const next = this.state.players[(idx + 1) % this.state.players.length];
     this.state.currentPlayerId = next.id;
