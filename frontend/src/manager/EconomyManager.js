@@ -1,5 +1,5 @@
 export default class EconomyManager {
-  constructor({ startingCash = 1500 } = {}) {
+  constructor({ startingCash = 15000 } = {}) {
     this.startingCash = startingCash;
   }
 

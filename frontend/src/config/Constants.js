@@ -19,7 +19,7 @@ export const GAME_CONFIG = {
 
   // Board
   BOARD: {
-    TILE_COUNT: 16, // change to 8/12/24 as needed
+    TILE_COUNT: 40,
   },
 
   // Tile types (server should use same identifiers)

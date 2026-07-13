@@ -5,8 +5,9 @@ import AuthScene from './scenes/AuthScene.js';
 import MenuScene from './scenes/MenuScene.js';
 import LobbyScene from './scenes/LobbyScene.js';
 import GameScene from './scenes/GameScene.js';
+import ResultScene from './scenes/ResultScene.js';
 
-GameConfig.scene = [BootScene, AuthScene, MenuScene, LobbyScene, GameScene];
+GameConfig.scene = [BootScene, AuthScene, MenuScene, LobbyScene, GameScene, ResultScene];
 
 const game = new Phaser.Game(GameConfig);
 
