@@ -510,9 +510,9 @@ export default class GameScene extends Phaser.Scene {
   }
 
   _connectMultiplayer() {
-    const token = this.token || sessionStorage.getItem("token") || "guest";
+    const wsToken = sessionStorage.getItem("playerId") || "guest";
     if (!gameService.socket) {
-      gameService.connect(this.gameId, token);
+      gameService.connect(this.gameId, wsToken);
     }
 
     this.wsUnsub = gameService.subscribe((event) => {
@@ -521,9 +521,14 @@ export default class GameScene extends Phaser.Scene {
         this._applyServerState(state);
         this._renderFromState();
       } else if (event.type === "turn_started") {
-        this.state.currentPlayerId = event.payload?.playerId || event.playerId;
+        const pid = event.payload?.nextPlayerId || event.payload?.playerId || event.playerId;
+        this.state.currentPlayerId = pid;
         this.state.allowedActions = ["roll"];
         this._renderFromState();
+      } else if (event.type === "dice_rolled") {
+        this._onRemoteDiceRoll(event);
+      } else if (event.type === "player_moved") {
+        this._onRemotePlayerMoved(event);
       } else if (event.type === "game_ended") {
         this.state.gameOver = true;
         this._renderFromState();
@@ -533,10 +538,18 @@ export default class GameScene extends Phaser.Scene {
     gameService.sendAction(PlayerAction.GET_STATE, {}).catch(() => {});
   }
 
-  _onRemoteDiceRoll(event) {}
+  async _onRemoteDiceRoll(event) {
+    const p = event.payload || event;
+    const d1 = p.dice1 || 0;
+    const d2 = p.dice2 || 0;
+    this.diceUI.show();
+    await this.diceUI.animateRoll({ results: [d1, d2], total: d1 + d2 });
+    this.diceUI.hide();
+  }
   _onRemotePlayerMoved(event) {
-    const pid = event.payload?.playerId || event.playerId;
-    const pos = event.payload?.position ?? event.payload?.to ?? 0;
+    const p = event.payload || event;
+    const pid = p.playerId || event.playerId;
+    const pos = p.to ?? p.position ?? p.positionIndex ?? 0;
     const player = this.state.playerById[pid];
     if (player) {
       player.positionIndex = pos;
@@ -667,8 +680,9 @@ export default class GameScene extends Phaser.Scene {
       try {
         await gameService.sendAction(PlayerAction.ROLL_DICE, {});
         await gameService.sendAction(PlayerAction.GET_STATE, {});
-      } catch {
-        this.notification.push('Roll failed — server unreachable');
+      } catch (e) {
+        this.notification.push(e?.message || 'Roll failed');
+        console.error('Roll failed:', e);
       }
       this.rolling = false;
       return;
