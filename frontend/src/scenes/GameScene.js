@@ -102,6 +102,11 @@ export default class GameScene extends Phaser.Scene {
       BOARD_ORIGIN.x + (CELL_SIZE * 11) / 2,
       BOARD_ORIGIN.y + (CELL_SIZE * 11) / 2 - 140
     );
+    this.turnStatusText = this.add.text(880, 400, '', {
+      fontFamily: 'Arial', fontSize: '14px', color: '#5eead4', fontStyle: 'bold',
+      align: 'center', wordWrap: { width: 200 },
+    }).setOrigin(0.5, 0.5).setDepth(60);
+
     this._setupButtons();
     this._setupQuitButton();
   }
@@ -621,8 +626,21 @@ export default class GameScene extends Phaser.Scene {
     this.buyBtn.setEnabled(allowed.includes("buy") && !this.state.gameOver);
     this.upgradeBtn.setEnabled(allowed.includes("upgrade") && !this.state.gameOver);
     this.skipBtn.setEnabled(allowed.includes("skip") && !this.state.gameOver);
+
+    const current = this.state.playerById[this.state.currentPlayerId];
     if (this.state.gameOver) {
+      this.turnStatusText.setText('Game Over!');
       this.time.delayedCall(1500, () => this._goToResults());
+    } else if (current) {
+      const hints = [];
+      if (allowed.includes("roll")) hints.push("Roll the dice");
+      if (allowed.includes("buy")) hints.push("Buy or skip");
+      if (allowed.includes("skip")) hints.push("End turn");
+      if (allowed.includes("upgrade")) hints.push("Upgrade a property");
+      if (hints.length === 0) hints.push("Wait...");
+      this.turnStatusText.setText(`${current.name}'s turn\n→ ${hints.join(" / ")}`);
+    } else {
+      this.turnStatusText.setText('');
     }
   }
 
