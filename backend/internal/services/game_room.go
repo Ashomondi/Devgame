@@ -162,20 +162,16 @@ func (r *Room) handleStartGame(cmd models.Command) ([]models.WSEvent, error) {
 		}
 	}
 
-	var events []models.WSEvent
-
 	if len(r.State.Players) > 0 {
 		turnService := NewTurnService(NewBoardService())
-		turnEvents, _ := turnService.StartTurn(r.State, r.State.Players[0].ID)
-		events = append(events, turnEvents...)
+		turnService.StartTurn(r.State, r.State.Players[0].ID)
 	}
 
 	stateJSON, _ := json.Marshal(r.State)
-	events = append(events,
-		models.WSEvent{Type: "game_started", Payload: stateJSON},
-		models.WSEvent{Type: "state_sync", Payload: stateJSON},
-	)
-	return events, nil
+	return []models.WSEvent{
+		{Type: "game_started", Payload: stateJSON},
+		{Type: "state_sync", Payload: stateJSON},
+	}, nil
 }
 
 func (r *Room) handleGetState(cmd models.Command) ([]models.WSEvent, error) {
