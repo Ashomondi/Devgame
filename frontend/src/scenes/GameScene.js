@@ -399,7 +399,7 @@ export default class GameScene extends Phaser.Scene {
       circle.lineStyle(3, 0xffffff, 1);
       circle.strokeCircle(px, py, 16);
 
-      const label = this.add.text(px, py, PLAYER_INITIALS[idx] || '?', {
+      const label = this.add.text(px, py, (p.name ? p.name.charAt(0).toUpperCase() : PLAYER_INITIALS[idx]) || '?', {
         fontFamily: 'Arial', fontSize: '16px', color: '#ffffff', fontStyle: 'bold',
         stroke: '#000', strokeThickness: 2,
       }).setOrigin(0.5, 0.5);
