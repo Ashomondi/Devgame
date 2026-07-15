@@ -522,6 +522,7 @@ export default class GameScene extends Phaser.Scene {
         this._renderFromState();
       } else if (event.type === "turn_started") {
         this.state.currentPlayerId = event.payload?.playerId || event.playerId;
+        this.state.allowedActions = ["roll"];
         this._renderFromState();
       } else if (event.type === "game_ended") {
         this.state.gameOver = true;
@@ -592,13 +593,26 @@ export default class GameScene extends Phaser.Scene {
     this.state.players = players;
     this.state.playerById = playerById;
     this.state.board = serverState.board ?? null;
-    this.state.currentPlayerId = serverState.currentPlayerId ?? serverState.current_player_id ?? null;
+
+    const turn = serverState.turn ?? {};
+    this.state.currentPlayerId = turn.activePlayerId ?? serverState.currentPlayerId ?? serverState.current_player_id ?? null;
     this.state.canCurrentPlayerAct = serverState.canCurrentPlayerAct ?? serverState.can_act ?? true;
-    this.state.allowedActions = serverState.allowedActions ?? serverState.allowed_actions ?? [];
     this.state.events = serverState.events ?? [];
     this.state.summary = serverState.summary ?? [];
     this.state.winnerId = serverState.winnerId ?? serverState.winner_player_id ?? null;
     this.state.gameOver = !!(serverState.gameOver ?? serverState.game_over ?? false);
+
+    if (serverState.allowedActions) {
+      this.state.allowedActions = serverState.allowedActions;
+    } else if (turn.phase === "awaiting_roll") {
+      this.state.allowedActions = ["roll"];
+    } else if (turn.phase === "free_action") {
+      this.state.allowedActions = ["skip", "upgrade"];
+    } else if (turn.phase === "resolving_square") {
+      this.state.allowedActions = [];
+    } else {
+      this.state.allowedActions = [];
+    }
   }
 
   _runLocalPlaceholder() {
