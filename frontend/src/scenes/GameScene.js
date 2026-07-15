@@ -660,6 +660,20 @@ export default class GameScene extends Phaser.Scene {
 
   async _onRoll() {
     if (this.rolling) return;
+
+    if (this.multiplayer) {
+      this.rolling = true;
+      this.rollBtn.setEnabled(false);
+      try {
+        await gameService.sendAction(PlayerAction.ROLL_DICE, {});
+        await gameService.sendAction(PlayerAction.GET_STATE, {});
+      } catch {
+        this.notification.push('Roll failed — server unreachable');
+      }
+      this.rolling = false;
+      return;
+    }
+
     this.rolling = true;
     this.rollBtn.setEnabled(false);
 
@@ -769,6 +783,16 @@ export default class GameScene extends Phaser.Scene {
   }
 
   _onBuy() {
+    if (this.multiplayer) {
+      const tile = this.pendingBuyTile;
+      this.pendingBuyTile = null;
+      if (!tile) return;
+      gameService.sendAction(PlayerAction.BUY_PROPERTY, { propertyId: tile.pos })
+        .then(() => gameService.sendAction(PlayerAction.GET_STATE, {}))
+        .catch(() => this.notification.push('Buy failed'));
+      return;
+    }
+
     const tile = this.pendingBuyTile;
     const current = this.state.playerById[this.state.currentPlayerId];
     if (!tile || !current) return;
@@ -785,6 +809,12 @@ export default class GameScene extends Phaser.Scene {
   }
 
   _onUpgrade() {
+    if (this.multiplayer) {
+      this.upgradeModal.show([], null);
+      this.notification.push('Upgrades are handled server-side in multiplayer');
+      return;
+    }
+
     const current = this.state.playerById[this.state.currentPlayerId];
     if (!current) return;
     const upgradable = (current.ownedProperties || []).map(pos => {
@@ -813,11 +843,24 @@ export default class GameScene extends Phaser.Scene {
   }
 
   _onSkip() {
+    if (this.multiplayer) {
+      this.pendingBuyTile = null;
+      gameService.sendAction(PlayerAction.END_TURN, {})
+        .then(() => gameService.sendAction(PlayerAction.GET_STATE, {}))
+        .catch(() => {});
+      return;
+    }
     if (this.pendingBuyTile) this.pendingBuyTile = null;
     this._endTurn();
   }
 
   _endTurn() {
+    if (this.multiplayer) {
+      gameService.sendAction(PlayerAction.END_TURN, {})
+        .then(() => gameService.sendAction(PlayerAction.GET_STATE, {}))
+        .catch(() => {});
+      return;
+    }
     if (this.lastRollWasDoubles) {
       this.lastRollWasDoubles = false;
       this.state.allowedActions = ["roll"];
